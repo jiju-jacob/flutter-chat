@@ -19,7 +19,6 @@ class Messages extends StatelessWidget {
               child: CircularProgressIndicator(),
             );
           }
-          print(chatSnapshot);
           if (chatSnapshot.data != null) {
             final chatDocs =
                 chatSnapshot.data as QuerySnapshot<Map<String, dynamic>>;

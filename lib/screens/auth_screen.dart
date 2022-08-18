@@ -1,8 +1,11 @@
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chat/widgets/auth_form.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -18,6 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
     String email,
     String password,
     String userName,
+    File? image,
     bool isLogin,
     BuildContext ctx,
   ) async {
@@ -33,14 +37,21 @@ class _AuthScreenState extends State<AuthScreen> {
       } else {
         authResult = await _auth.createUserWithEmailAndPassword(
             email: email, password: password);
+        final ref = FirebaseStorage.instance
+            .ref()
+            .child('user_image')
+            .child(authResult.user?.uid ?? '' + '.jpg');
+        final upload = await ref.putFile(image!).whenComplete(() => {});
+        final url = await upload.ref.getDownloadURL();
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(authResult.user?.uid)
+            .set({
+          'userName': userName,
+          'email': email,
+          'image_url': url,
+        });
       }
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(authResult.user?.uid)
-          .set({
-        'userName': userName,
-        'email': email,
-      });
     } on PlatformException catch (err) {
       var message = 'error occured!';
       if (err.message != null) {
@@ -54,7 +65,7 @@ class _AuthScreenState extends State<AuthScreen> {
         _isLoading = false;
       });
     } catch (err) {
-       Scaffold.of(ctx).showSnackBar(SnackBar(
+      Scaffold.of(ctx).showSnackBar(SnackBar(
         content: Text(err.toString()),
         backgroundColor: Theme.of(ctx).errorColor,
       ));
